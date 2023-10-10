@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -e  # fail on any error
+shopt -s nullglob  # dont return the glob-pattern if nothing found
+
+# supposed the shell-script in a scripts/ folder or so.
+# if the script is in the root directory remove the ../ at the end
+ROOT="$(realpath "$(dirname "$(realpath "$0")")/../")"
+cd "$ROOT"
+
+################################################################################
+SOURCE=docs/
+################################################################################
+
+cd "$SOURCE"  # go to the source directory as you can't specify the directory in http.server
+IFS=" " read -r -a IPS <<< "$(hostname -I)"  # somehow read network-ip
+IP="${IPS[0]}"  # first found network-ip
+PORT=8000  # port
+
+echo "Serving documentation on http://${IP}:${PORT}/${SOURCE}"
+python3 -m http.server --bind 0.0.0.0 $PORT > /dev/null
