@@ -51,6 +51,9 @@ function print_help() {
 }
 
 case "$1" in
+#"your-command")
+#  shell_func "${@:2}"
+#;;
 "help" | "--help" | "-h")
   print_help "${@:2}"
 ;;

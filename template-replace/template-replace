@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+import os
+import re
+import sys
+import shlex
+import fileinput
+import typing as t
+import datetime as dt
+
+
+########################################################################################################################
+# default variables
+########################################################################################################################
+
+
+DEFAULT_VARIABLES: t.Dict[str, str] = {
+    "today": dt.date.today().isoformat(),
+    "now": dt.datetime.now().isoformat(),
+}
+
+
+########################################################################################################################
+# styles
+########################################################################################################################
+
+
+STYLE_BASH = re.compile(r'\$\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')
+STYLE_DOUBLE = re.compile(r'\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')
+STYLE_SINGLE = re.compile(r'\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')
+
+STYLES: t.Dict[str, re.Pattern] = {
+    "DEFAULT": STYLE_BASH,
+    "BASH": STYLE_BASH,
+    "DOUBLE": STYLE_DOUBLE,
+    "SINGLE": STYLE_SINGLE,
+}
+
+
+########################################################################################################################
+# formatter
+########################################################################################################################
+
+
+def formatter_escape(value: str) -> str:
+    return re.sub(r"(?<!\\)['\"]", repl='\\\0', string=value)
+
+
+def formatter_date(value: str, fmt: str = None) -> str:
+    if re.fullmatch(r'\d+', value):
+        date = dt.datetime.fromtimestamp(int(value))
+    else:
+        date = dt.datetime.fromisoformat(value)
+    return date.strftime(fmt) if fmt else date.isoformat()
+
+
+def align(value: str, direction: str, size: str, fill: str = ' ') -> str:
+    fmt_func = {
+        '<': str.ljust,
+        'left': str.ljust,
+        '=': str.center,
+        'center': str.center,
+        'middle': str.center,
+        '>': str.rjust,
+        'right': str.rjust,
+    }[direction]
+    return fmt_func(value, int(size), fill)
+
+
+FORMATTERS: t.Dict[str, t.Callable[[str, t.List[str]], str]] = {
+    "\\": formatter_escape,
+    "escape": formatter_escape,
+    "date": formatter_date,
+    "align": align,
+}
+
+
+########################################################################################################################
+# replacer
+########################################################################################################################
+
+
+def replacer(mapping: t.Dict[str, str]):
+    def wrapped(match: re.Match) -> str:
+        key = match.group('key')
+        value = mapping[key]
+        fmt = match.group('fmt')
+        if fmt:
+            name, *args = shlex.split(fmt)
+            value = FORMATTERS[name](value, *args)
+        return str(value)
+    return wrapped
+
+
+########################################################################################################################
+# mapping
+########################################################################################################################
+
+
+def get_mapping(argv: t.List[str] = None) -> t.Dict[str, str]:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    mapping = DEFAULT_VARIABLES.copy()
+
+    current_key = None
+    for arg in argv:
+        if current_key is None and arg.startswith('--'):
+            current_key = arg[2:]
+        elif current_key is not None:
+            mapping[current_key] = arg
+            current_key = None
+        else:
+            raise
+
+    return mapping
+
+
+########################################################################################################################
+# main
+########################################################################################################################
+
+
+def main(argv: t.List[str]):
+    on_error = os.getenv('TEMPLATE_REPLACE_ERROR', default="STRICT").upper()
+    if on_error not in {'STRICT', 'IGNORE'}:
+        raise EnvironmentError(f"$TEMPLATE_REPLACE_ERROR {on_error!r} unknown ('STRICT' or 'IGNORE')")
+    style = os.getenv('TEMPLATE_REPLACE_STYLE', default="DEFAULT").upper()
+    pattern = STYLES.get(style)
+    if pattern is None:
+        raise EnvironmentError(f"$TEMPLATE_REPLACE_STYLE {style!r} unknown ({', '.join(STYLES.keys())})")
+    mapping = get_mapping(argv)
+
+    with fileinput.input(()) as f:
+        for line_no, line in enumerate(f):
+            try:
+                formatted = re.sub(
+                    pattern=pattern,
+                    repl=replacer(mapping=mapping),
+                    string=line
+                )
+            except Exception as error:
+                sys.stderr.write(f"Error in line {line_no}: {type(error).__name__} ({error})\n")
+                return 1
+            else:
+                sys.stdout.write(formatted)
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]) or 0)
