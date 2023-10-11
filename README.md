@@ -6,3 +6,22 @@ This project is meant as a container for utility-scripts that should work on any
 Just select a script you want and copy it into your project.
 
 For further information go into the scripts directory and read the README
+
+> See [shell-cli-template](./shell-cli-template) for a shell command-line-interface template.
+
+## Ready to go Scripts
+
+### [http-serve](./http-serve)
+Serve a folder in http-mode
+
+## shell-utilities
+
+### [template-replace](./template-replace)
+
+Usage: `cat {input-file} > ./template-replace --key val --key2 val2 ... > {output-file}`
+
+### [textwrap](./textwrap)
+
+```
+textwrap {fill,dedent,indent,shorten} ...
+```

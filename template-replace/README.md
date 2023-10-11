@@ -1,6 +1,6 @@
 # template-replace
 
-within your script you can either call it directly with `./template-replace`.
+Usage: `cat {input-file} > ./template-replace --key val --key2 val2 ... > {output-file}`
 
 ## usage
 
