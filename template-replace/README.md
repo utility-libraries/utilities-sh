@@ -1,6 +1,6 @@
 # template-replace
 
-within your script you can either call it directly with `./template-replace` or load the functions with `source ./template-replace`.
+within your script you can either call it directly with `./template-replace`.
 
 ## usage
 
@@ -32,7 +32,7 @@ styles:
   - `${key}`
 - `DOUBLE`
   - `{{key}}`
-- SINGLE
+- `SINGLE`
   - `{key}`
 
 ## formatting
@@ -50,3 +50,7 @@ formatting options:
 `${key:date fmt}`
 
 See [here](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) for information about the format
+
+### align
+
+`${key:align {left|center|right} size [fillchar]}`
