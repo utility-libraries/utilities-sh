@@ -18,10 +18,12 @@ Serve a folder in http-mode
 
 ### [template-replace](./template-replace)
 
-Usage: `cat {input-file} > ./template-replace --key val --key2 val2 ... > {output-file}`
+```bash
+cat {input-file} > ./template-replace --key val --key2 val2 ... > {output-file}
+```
 
 ### [textwrap](./textwrap)
 
-```
-textwrap {fill,dedent,indent,shorten} ...
+```bash
+./textwrap {fill,dedent,indent,shorten} ...
 ```
