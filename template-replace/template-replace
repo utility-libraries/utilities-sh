@@ -24,9 +24,9 @@ DEFAULT_VARIABLES: t.Dict[str, str] = {
 ########################################################################################################################
 
 
-STYLE_BASH = re.compile(r'\$\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')
-STYLE_DOUBLE = re.compile(r'\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')
-STYLE_SINGLE = re.compile(r'\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')
+STYLE_BASH = re.compile(r'\$\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')  # ${key:fmt}
+STYLE_DOUBLE = re.compile(r'\{\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}}')  # {{key:fmt}}
+STYLE_SINGLE = re.compile(r'\{(?P<key>[\w-]+)(?::(?P<fmt>[^}]+))?}')  # {key:fmt}
 
 STYLES: t.Dict[str, re.Pattern] = {
     "DEFAULT": STYLE_BASH,
