@@ -7,7 +7,11 @@ Just select a script you want and copy it into your project.
 
 For further information go into the scripts directory and read the README
 
-> See [shell-cli-template](./shell-cli-template) for a shell command-line-interface template.
+## Templates
+
+### [shell-cli-template](./shell-cli-template)
+
+command-line-interface shell-script template
 
 ## Ready to go Scripts
 
