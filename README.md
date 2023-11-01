@@ -23,11 +23,11 @@ Serve a folder in http-mode
 ### [template-replace](./template-replace)
 
 ```bash
-cat {input-file} > ./template-replace --key val --key2 val2 ... > {output-file}
+cat {input-file} | ./template-replace --key val --key2 val2 ... > {output-file}
 ```
 
 ### [textwrap](./textwrap)
 
 ```bash
-./textwrap {fill,dedent,indent,shorten} ...
+cat {input-file} | ./textwrap {fill,dedent,indent,shorten} ... > {output-file}
 ```

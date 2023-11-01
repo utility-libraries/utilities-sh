@@ -1,6 +1,6 @@
 # template-replace
 
-Usage: `cat {input-file} > ./template-replace --key val --key2 val2 ... > {output-file}`
+Usage: `cat {input-file} | ./template-replace --key val --key2 val2 ... > {output-file}`
 
 ## usage
 
@@ -12,7 +12,7 @@ location=${location}
 
 `command-line`
 ```bash
-cat app.conf.template > ./template-replace --location "/opt/program/" > build/app.conf 
+cat app.conf.template | ./template-replace --location "/opt/program/" > build/app.conf 
 ```
 
 `build/app.conf`
@@ -26,7 +26,7 @@ location=/opt/program
 `$TEMPLATE_REPLACE_STYLE`
 
 ```bash
-cat input > TEMPLATE_REPLACE_STYLE="DEFAULT" ./template-replace --key value > output
+cat input | TEMPLATE_REPLACE_STYLE="DEFAULT" ./template-replace --key value > output
 ```
 
 styles:
@@ -51,10 +51,10 @@ ${$:echo "Hello World"}
 
 There are certain default variables
 
-| name  | value                          |
-|-------|--------------------------------|
-| today | date today as isoformat string |
-| now   | time now as isoformat string   |
+| name  | value                           |
+|-------|---------------------------------|
+| today | date today as iso-format string |
+| now   | time now as iso-format string   |
 
 otherwise you can use shell variables (`${$shell-variable}`)
 
@@ -78,7 +78,7 @@ ${key:escape}
 
 Format the value to a date
 
-The value can either be a timestamp or either `$TEMPLATE_REPLACE_STRPTIME` (if available) or isoformat
+The value can either be a timestamp or either `$TEMPLATE_REPLACE_STRPTIME` (if available) or iso-format
 
 ```
 ${key:date [fmt]}
@@ -89,7 +89,7 @@ See [here](https://docs.python.org/3/library/datetime.html#strftime-and-strptime
 ### align
 
 ```
-${key:align {left|center|right} size [fillchar]}
+${key:align left|center|right size [fillchar]}
 ```
 
 ### dedent
@@ -113,7 +113,7 @@ ${key:indent [prefix]}
 removes spaces and newlines on both sides or left/right
 
 ```
-${key:trim [both|left|right]}
+${key:trim [left|both|right]}
 ```
 
 ### ltrim

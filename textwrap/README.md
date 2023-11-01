@@ -1,6 +1,6 @@
 # textwrap utilities
 
-Usage: `cat {input-file} > ./textwrap {command} > {output-file}`
+Usage: `cat {input-file} | ./textwrap {command} > {output-file}`
 
 ```
 usage: textwrap [-h] {fill,dedent,indent,shorten} ...
