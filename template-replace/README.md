@@ -10,10 +10,12 @@ Usage: `cat {input-file} > ./template-replace --key val --key2 val2 ... > {outpu
 location=${location}
 ```
 
+`command-line`
 ```bash
 cat app.conf.template > ./template-replace --location "/opt/program/" > build/app.conf 
 ```
 
+`build/app.conf`
 ```ini
 [section]
 location=/opt/program
