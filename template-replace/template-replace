@@ -53,7 +53,7 @@ def formatter_date(value: str, fmt: str = None) -> str:
     return date.strftime(fmt) if fmt else date.isoformat()
 
 
-def align(value: str, direction: str, size: str, fill: str = ' ') -> str:
+def formatter_align(value: str, direction: str, size: str, fill: str = ' ') -> str:
     fmt_func = {
         '<': str.ljust,
         'left': str.ljust,
@@ -70,7 +70,7 @@ FORMATTERS: t.Dict[str, t.Callable[[str, t.List[str]], str]] = {
     "\\": formatter_escape,
     "escape": formatter_escape,
     "date": formatter_date,
-    "align": align,
+    "align": formatter_align,
 }
 
 
