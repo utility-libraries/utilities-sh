@@ -11,7 +11,7 @@ location=${location}
 ```
 
 ```bash
-./template-replace --location "/opt/program/" app.conf.template build/app.conf 
+cat app.conf.template > ./template-replace --location "/opt/program/" > build/app.conf 
 ```
 
 ```ini
@@ -24,7 +24,7 @@ location=/opt/program
 `$TEMPLATE_REPLACE_STYLE`
 
 ```bash
-TEMPLATE_REPLACE_STYLE="DEFAULT" ./template-replace --key value input output
+cat input > TEMPLATE_REPLACE_STYLE="DEFAULT" ./template-replace --key value > output
 ```
 
 styles:
@@ -43,11 +43,11 @@ formatting options:
 
 ### escape
 
-`"${key:escape}"` with `--location 'I said "hey"'` comes to `"I said \"hey\""`
+`"${key:escape}"` with `--key 'I said "hey"'` comes to `"I said \"hey\""`
 
 ### date
 
-`${key:date fmt}`
+`${key:date [fmt]}`
 
 See [here](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) for information about the format
 
