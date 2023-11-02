@@ -3,16 +3,353 @@
 r"""
 
 """
+import re
+import os
+import ast
 import sys
-import fileinput
+import enum
+import operator
+import typing as t
+from functools import cached_property
 
 
-def main():
-    with fileinput.input(()) as f:
-        for i, line in enumerate(f):
-            sys.stdout.write(f"{i:<2} {line}")
+T_Context = t.Dict[str, t.Any]
+
+
+VARIABLE_TOKEN_START = '{{'
+VARIABLE_TOKEN_END = '}}'
+BLOCK_TOKEN_START = '{%'
+BLOCK_TOKEN_END = '%}'
+COMMENT_TOKEN_START = '{#'
+COMMENT_TOKEN_END = '#}'
+
+
+class Type(enum.Enum):
+    COMMENT = enum.auto()
+    TEXT = enum.auto()
+    VARIABLE = enum.auto()
+    OPEN_BLOCK = enum.auto()
+    CLOSE_BLOCK = enum.auto()
+
+
+TOKENIZE_RE = re.compile(
+    fr'({COMMENT_TOKEN_START}.*?{COMMENT_TOKEN_END}|{VARIABLE_TOKEN_START}.*?{VARIABLE_TOKEN_END}|{BLOCK_TOKEN_START}.*?{BLOCK_TOKEN_END})',
+    re.DOTALL)
+
+
+CONSTANTS = {
+    'True': True,
+    'true': True,
+    'False': False,
+    'false': False,
+    'None': None,
+    'null': None,
+}
+
+OPERATOR_LOOKUP_TABLE = {
+    '<': operator.lt,
+    '>': operator.gt,
+    '==': operator.eq,
+    '!=': operator.ne,
+    '<=': operator.le,
+    '>=': operator.ge
+}
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
+class TemplateError(Exception):
+    pass
+
+
+class TemplateContextError(TemplateError):
+
+    def __init__(self, context_var):
+        self.context_var = context_var
+
+    def __str__(self):
+        return f"cannot resolve {self.context_var!r}"
+
+
+class TemplateSyntaxError(TemplateError):
+
+    def __init__(self, error_syntax, line: int = None):
+        self.line = line
+        self.error_syntax = error_syntax
+
+    def __str__(self):
+        if self.line is not None:
+            return f"(line {self.line}) {self.error_syntax!r} seems like invalid syntax"
+        else:
+            return f"{self.error_syntax!r} seems like invalid syntax"
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
+def get_basic_context(argv: t.List[str]) -> t.Dict[str, str]:
+    context = {}
+
+    context.update({
+        f'${key}': value
+        for key, value in os.environ.items()
+    })
+
+    current_key = None
+    for arg in argv:
+        if current_key is None and arg.startswith('--'):
+            current_key = arg[2:]
+        elif current_key is not None:
+            try:
+                context[current_key] = ast.literal_eval(arg)
+            except (ValueError, SyntaxError):
+                context[current_key] = arg
+            current_key = None
+        else:
+            raise RuntimeError("Bad command-line arguments supplied")
+
+    return context
+
+
+def evaluate_variable(var: str) -> t.Tuple[str, t.Any]:
+    try:
+        return 'literal', ast.literal_eval(var)
+    except (ValueError, SyntaxError):
+        return 'name', var
+
+
+# def evaluate_expression(expression: str, context: T_Context):
+#     return eval(expression, {}, context)
+
+
+def resolve(name: str, context: T_Context):
+    while name.startswith(".."):
+        context = context.get('..', {})
+        name = name[2:]
+    try:
+        for tok in name.split('.'):
+            context = context[tok]
+        return context
+    except KeyError:
+        raise TemplateContextError(name)
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
+class Fragment:
+    def __init__(self, raw: str):
+        self.raw = raw
+
+    def __str__(self):
+        return self.clean
+
+    def __repr__(self):
+        return f'<{type(self).__name__}|{self.type}|{self.clean!r}>'
+
+    @cached_property
+    def clean(self):
+        for head, tail in [
+            (COMMENT_TOKEN_START, COMMENT_TOKEN_END),
+            (VARIABLE_TOKEN_START, VARIABLE_TOKEN_END),
+            (BLOCK_TOKEN_START, BLOCK_TOKEN_END),
+        ]:
+            if self.raw.startswith(head) and self.raw.endswith(tail):
+                return self.raw[len(head):-len(tail)].strip()
+        return self.raw
+
+    @cached_property
+    def type(self):
+        if self.raw.startswith(COMMENT_TOKEN_START) and self.raw.endswith(COMMENT_TOKEN_END):
+            return Type.COMMENT
+        elif self.raw.startswith(VARIABLE_TOKEN_START) and self.raw.endswith(VARIABLE_TOKEN_END):
+            return Type.VARIABLE
+        elif self.raw.startswith(BLOCK_TOKEN_START) and self.raw.endswith(BLOCK_TOKEN_END):
+            if self.raw[len(BLOCK_TOKEN_START):].lstrip().startswith("end"):
+                return Type.CLOSE_BLOCK
+            else:
+                return Type.OPEN_BLOCK
+        else:
+            return Type.TEXT
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
+class Node:
+    creates_scope = False
+
+    def __init__(self, content: str = None):
+        self.children = []
+        self.process_content(content)
+
+    def process_content(self, content: str):
+        pass
+
+    def enter_scope(self):
+        pass
+
+    def render(self, context: T_Context):
+        pass
+
+    def exit_scope(self):
+        pass
+
+    def render_children(self, context: T_Context, children=None):
+        if children is None:
+            children = self.children
+
+        def render_child(child):
+            child_html = child.render(context)
+            return '' if not child_html else str(child_html)
+
+        return ''.join(map(render_child, children))
+
+
+class ScopableNode(Node):
+    creates_scope = True
+
+
+class RootNode(Node):
+    def render(self, context):
+        return self.render_children(context)
+
+
+class CommentNode(Node):
+    def render(self, _: T_Context):
+        pass
+
+
+class TextNode(Node):
+    text: str
+
+    def process_content(self, content):
+        self.text = content
+
+    def render(self, context):
+        return self.text
+
+
+class VariableNode(Node):
+    name: str
+
+    def process_content(self, content: str):
+        self.name = content
+
+    def render(self, context: T_Context):
+        return resolve(self.name, context)
+
+
+class BlockSetVariableNode(Node):
+    _RE = re.compile(r'\s*=\s*')
+    name: str
+    expression: str
+
+    def process_content(self, content: str):
+        name, expression = self._RE.split(content, maxsplit=1)
+        self.name = name
+        self.expression = expression
+
+    def render(self, context: T_Context):
+        typ, value = evaluate_variable(self.expression)
+        if typ == 'name':
+            value = resolve(value, context)
+        context.update({self.name: value})
+
+
+class ForEachNode(ScopableNode):
+    item: t.Tuple[str, t.Any]
+
+    def process_content(self, content):
+        try:
+            self.item = evaluate_variable(content)
+        except ValueError:
+            raise TemplateSyntaxError(content)
+
+    def render(self, context):
+        items = self.item[1] if self.item[0] == 'literal' else resolve(self.item[1], context)
+
+        def render_item(item):
+            return self.render_children({'..': context, 'item': item})
+
+        return ''.join(map(render_item, items))
+
+
+BLOCK_COMMANDS_MAP = {
+    'set': BlockSetVariableNode,
+    'each': ForEachNode,
+    'foreach': ForEachNode,
+}
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
+
+
+class TemplateCompiler:
+    def __init__(self, template: str):
+        self.template = template
+        self.line = 0
+
+    def each_fragment(self):
+        for raw_fragment in TOKENIZE_RE.split(self.template):
+            if raw_fragment:
+                yield Fragment(raw_fragment)
+
+    def increment_line(self, fragment: Fragment):
+        self.line += fragment.raw.count('\n')
+
+    def compile(self):
+        root = RootNode()
+        scope_stack = [root]
+        for fragment in self.each_fragment():
+            if not scope_stack:
+                raise TemplateSyntaxError(f'nesting issues (line {self.line})', line=self.line)
+            parent_scope = scope_stack[-1]
+            if fragment.type == Type.CLOSE_BLOCK:
+                parent_scope.exit_scope()
+                scope_stack.pop()
+                continue
+            new_node = self.create_node(fragment)
+            if new_node:
+                parent_scope.children.append(new_node)
+                if new_node.creates_scope:
+                    scope_stack.append(new_node)
+                    new_node.enter_scope()
+            self.increment_line(fragment)
+        return root
+
+    def create_node(self, fragment: Fragment):
+        print([fragment])
+        if fragment.type == Type.COMMENT:
+            return CommentNode(fragment.clean)
+        elif fragment.type == Type.TEXT:
+            return TextNode(fragment.clean)
+        elif fragment.type == Type.VARIABLE:
+            return VariableNode(fragment.clean)
+        elif fragment.type == Type.OPEN_BLOCK:
+            cmd, sep, statement = fragment.clean.partition(" ")
+            if cmd in BLOCK_COMMANDS_MAP:
+                return BLOCK_COMMANDS_MAP[cmd](statement or "")
+        raise TemplateSyntaxError(fragment.raw, line=self.line)
+
+
+class TemplateEngine:
+    def __init__(self, content: str):
+        self.content = content
+        self.root = TemplateCompiler(content).compile()
+
+    def render(self, context: T_Context) -> str:
+        return self.root.render(context)
+
+
+def main(argv: t.List[str]):
+    context = get_basic_context(argv)
+    content = sys.stdin.read()
+    engine = TemplateEngine(content)
+    rendered = engine.render(context)
+    sys.stdout.write(rendered)
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main() or 0)
+    sys.exit(main(sys.argv[1:]) or 0)
