@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 ################################################################################
+# Template for small shell scripts with a CLI                                  #
+# ---------------------------------------------------------------------------- #
+# This file was taken from the utilities-sh project:                           #
+# https://github.com/utility-libraries/utilities-sh/tree/main/shell-cli-template
+################################################################################
 # {here you can write a comment or so}
 ################################################################################
 set -e  # fail on any error

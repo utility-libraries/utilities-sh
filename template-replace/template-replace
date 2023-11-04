@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding=utf-8 -*-
-r"""
-Used to fill a template
-"""
+################################################################################
+# Utility script to fill templates with content                                #
+# See the GitHub project for the usage information but in short it replaces    #
+# ${key} in the stdin with variables passed to the script via --key value      #
+# ---------------------------------------------------------------------------- #
+# This file was taken from the utilities-sh project:                           #
+# https://github.com/utility-libraries/utilities-sh/tree/main/template-replace #
+################################################################################
 import os
 import re
 import sys

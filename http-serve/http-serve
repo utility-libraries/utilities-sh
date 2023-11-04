@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-###############################################################################
-# Serves a folder in http-mode with support to set the baseurl.               #
-# Modify the $SOURCE, $BASEURL or $PORT to your needs.                        #
-# --------------------------------------------------------------------------- #
-# This file was taken from the utilities-sh project:                          #
-# https://github.com/utility-libraries/utilities-sh/tree/main/http-serve      #
-###############################################################################
+################################################################################
+# Serves a folder in http-mode with support to set the baseurl.                #
+# Modify the $SOURCE, $BASEURL or $PORT to your needs.                         #
+# ---------------------------------------------------------------------------- #
+# This file was taken from the utilities-sh project:                           #
+# https://github.com/utility-libraries/utilities-sh/tree/main/http-serve       #
+################################################################################
 set -e  # fail on any error
 
 # supposed the shell-script in a scripts/ folder or so.
