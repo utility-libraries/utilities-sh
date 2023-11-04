@@ -1,20 +1,53 @@
 #!/usr/bin/env bash
+###############################################################################
+# Serves a folder in http-mode with support to set the baseurl.               #
+# Modify the $SOURCE, $BASEURL or $PORT to your needs.                        #
+# --------------------------------------------------------------------------- #
+# This file was taken from the utilities-sh project:                          #
+# https://github.com/utility-libraries/utilities-sh/tree/main/http-serve      #
+###############################################################################
 set -e  # fail on any error
-shopt -s nullglob  # dont return the glob-pattern if nothing found
 
 # supposed the shell-script in a scripts/ folder or so.
 # if the script is in the root directory remove the ../ at the end
 ROOT="$(realpath "$(dirname "$(realpath "$0")")/../")"
 cd "$ROOT"
 
-################################################################################
+################################## Modifiable ##################################
+# Source folder to serve
 SOURCE=docs/
+# baseurl which should be used not starting with /
+BASEURL=
+# Port to serve on
+PORT=8000
 ################################################################################
 
-cd "$SOURCE"  # go to the source directory as you can't specify the directory in http.server
+SOURCE=$(realpath ${SOURCE})
+
 IFS=" " read -r -a IPS <<< "$(hostname -I)"  # somehow read network-ip
 IP="${IPS[0]}"  # first found network-ip
-PORT=8000  # port
 
-echo "Serving documentation on http://${IP}:${PORT}/${SOURCE}"
+# creates a tempdir with a folder structure similar to the baseurl as pythons http.server serves the current folder as is
+TMPDIR=$(mktemp --directory)
+cd "${TMPDIR}"
+mkdir -p "$(dirname "${BASEURL}")"
+ln -s "${SOURCE}" "${BASEURL%/}"
+trap 'rm -rf -- "${TMPDIR}"' EXIT
+
+if [ -n "$BASEURL" ]; then
+  # index file to redirect to the baseurl
+  echo "<!DOCTYPE html>
+  <html lang=\"en\">
+  <head>
+      <title>redirecting...</title>
+      <meta http-equiv=\"Refresh\" content=\"0; url='/${BASEURL}'\">
+  </head>
+  <body style=\"display: grid; place-content: center; min-height: 100vh; font-size: 4vw; text-align: center;\">
+      <p>You are shortly being redirected to</p>
+      <a href=\"/${BASEURL}\">/${BASEURL}</a>
+  </body>
+  </html>" > "${TMPDIR}/index.html"
+fi
+
+echo "Serving documentation on http://${IP}:${PORT}/${BASEURL}"
 python3 -m http.server --bind 0.0.0.0 $PORT > /dev/null
