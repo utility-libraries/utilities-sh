@@ -25,6 +25,11 @@ PORT=${PORT:-8000}
 SOURCE=$(realpath "${SOURCE}")  # make absolute in case we change the CWD
 BASEURL="${BASEURL#/}"  # remove prefix / if available
 
+if [ ! -d "$SOURCE" ]; then
+  echo "Source folder does not exist (${SOURCE})"
+  exit 1
+fi
+
 IFS=" " read -r -a IPS <<< "$(hostname -I)"  # somehow read network-ip
 HOST="${IPS[0]}"  # first found network-ip
 
