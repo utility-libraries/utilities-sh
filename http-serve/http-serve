@@ -16,25 +16,28 @@ cd "$ROOT"
 ################################## Modifiable ##################################
 # Source folder to serve
 SOURCE=docs/
-# baseurl which should be used not starting with /
+# baseurl which should be used
 BASEURL=
 # Port to serve on
-PORT=8000
+PORT=${PORT:-8000}
 ################################################################################
 
-SOURCE=$(realpath ${SOURCE})
+SOURCE=$(realpath "${SOURCE}")  # make absolute in case we change the CWD
+BASEURL="${BASEURL#/}"  # remove prefix / if available
 
 IFS=" " read -r -a IPS <<< "$(hostname -I)"  # somehow read network-ip
-IP="${IPS[0]}"  # first found network-ip
+HOST="${IPS[0]}"  # first found network-ip
 
-# creates a tempdir with a folder structure similar to the baseurl as pythons http.server serves the current folder as is
-TMPDIR=$(mktemp --directory)
-cd "${TMPDIR}"
-mkdir -p "$(dirname "${BASEURL}")"
-ln -s "${SOURCE}" "${BASEURL%/}"
-trap 'rm -rf -- "${TMPDIR}"' EXIT
+if [ -z "$BASEURL" ]; then  # no BASEURL. go directly into the source directory
+  cd "$SOURCE"
+else  # BASEURL set. simulate it with directories
+  # creates a tempdir with a folder structure similar to the baseurl as pythons http.server serves the current folder as is
+  TMPDIR=$(mktemp --directory)  # create temporary directory to serve
+  cd "${TMPDIR}"  # go into the TMP-Directory
+  mkdir -p "$(dirname "${BASEURL}")"  # create first parts of BASEURL (eg "/web/docs/" creates web/)
+  ln -s "${SOURCE}" "${BASEURL%/}"  # link final part to the source directory
+  trap 'rm -rf -- "${TMPDIR}"' EXIT  # remove TMPDIR at exit
 
-if [ -n "$BASEURL" ]; then
   # index file to redirect to the baseurl
   echo "<!DOCTYPE html>
   <html lang=\"en\">
@@ -43,11 +46,11 @@ if [ -n "$BASEURL" ]; then
       <meta http-equiv=\"Refresh\" content=\"0; url='/${BASEURL}'\">
   </head>
   <body style=\"display: grid; place-content: center; min-height: 100vh; font-size: 4vw; text-align: center;\">
-      <p>You are shortly being redirected to</p>
+      <p>If you see this page the automatic redirect did not work. Please click the link below</p>
       <a href=\"/${BASEURL}\">/${BASEURL}</a>
   </body>
   </html>" > "${TMPDIR}/index.html"
 fi
 
-echo "Serving documentation on http://${IP}:${PORT}/${BASEURL}"
-python3 -m http.server --bind 0.0.0.0 $PORT > /dev/null
+echo "Serving documentation on http://${HOST}:${PORT}/${BASEURL}"
+python3 -m http.server --bind 0.0.0.0 "$PORT" > /dev/null
